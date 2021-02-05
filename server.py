@@ -28,7 +28,18 @@ while True: #se il server è in ascolto esegue i comandi
         if dati=='0': 
             print("Chiudo la connessione con " + str(addr_client))
             break #se dati ha valore '0' chiude la connessione
-        dati = "Risposta a : " + str(addr_client) + ". Il valore del contatore è : " + str(contConn) #se dati ha valore !='0' restituisce al client il valore del contatore
+        
+        operazione, n1, n2 = dati.split(";") #.split divide la stringa al carattere indicato#Vari if per selezionare l'operazione che il client ha inserito
+        if operazione == "piu": #controllo operazione +
+            risultato = int(n1) + int(n2)
+        if operazione == "meno": #controllo operazione -
+            risultato = int(n1) - int(n2)
+        if operazione == "per": #controllo operazione *
+            risultato = int(n1) * int(n2)
+        if operazione == "diviso": #controllo operazione /
+            risultato = int(n1) / int(n2)
+
+        dati = "Il risultato è: " + str(risultato) #output dell'operazione
 
         dati = dati.encode() #codifica la risposta
 

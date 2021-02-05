@@ -32,7 +32,7 @@ while True:
         print("Chiudo la connessione con il server!") #quando l'utente unserisce '0' in input si interrompe la connessione
         break
     
-    dati = dati.encode() #vengono decodificati i dati
+    dati = dati.encode() #vengono codificati i dati
 
     sock_service.send(dati) #vengono inviati i dati
 
