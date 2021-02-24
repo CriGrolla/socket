@@ -1,43 +1,69 @@
 #!/usr/bin/env python3
 import socket #importiamo il pacchetto socket
 import sys #importiamo il pacchetto sys
+import random #importiamo il pacchetto random
+import os #importiamo il pacchetto os
+import time #importiamo il pacchetto time
+import threading #importiamo il pacchetto threading
+import multiprocessing #importiamo il pacchetto multiprocessing
 
 SERVER_ADDRESS = '127.0.0.1' #indirizzo server
 SERVER_PORT = 22224 #porta server
-
-def invia_comandi(socket_service): #la funzione riceve la socket connessa al server e la utilizza per richiedere il servizio
-    while True:
-        try:
-            dati = input("Inserisci i dati da inviare (0 per terminare la connessione): ") #l'utente inserisce la richiesta da mandare al server
-        except EOFError: #se trova un errore sulla rete chiude la connessione
-            print("\nOkay. Exit")
-            break
-        if not dati: #controllo che la riga non sia vuota
-            print("Non puoi inviare una stringa vuota!") 
-            continue
-        if dati == '0': 
-            print("Chiudo la connessione con il server!") #quando l'utente unserisce '0' in input si interrompe la connessione
-            break
-        dati = dati.encode() #vengono codificati i dati
-        sock_service.send(dati) #vengono inviati i dati
-        dati = sock_service.recv(2048) #aspetta la risposta dal server
-        if not dati: #controllo risposta del server
-            print("Server non risponde. Exit")
-            break # se non risponde chiude il collegamento
-        dati = dati.decode() # se risponde vengono decodificati i dati
-        print("Ricevuto dal server:")
-        print(dati + '\n') # i dati ricevuti vengono stampati
-    sock_service.close() #se l'utente inserisce 0 o se il server non risponde, si chiude la connessione
-
-def connessione_server(address,port): #crea una socket (s) per una connessione con il server e la passa alla funzione invia_comandi(s)
+NUM_WORKERS = 15
+def genera_richieste(address, port):
+    start_time_thread=time.time()
+    print("Client PID: %s, Process Name: %s, Thread Name: &s" % (
+        os.getpid(),
+        multiprocessing.current_process().name,
+        threading.current_thread().name()
+        )
+    )
     try:
-        s=socket.socket() #creazione del socket client
-        s.connect((address,port)) #connessione al server
-        print(f"Connessione al Server: {address}:{port}")
-    except s.error as errore: #se si trova un errore si esce
-        print(f"Qualcosa è andato storto, sto uscendo... \n{errore}")
+        s=socket.socket() #creazione socke client
+        s.connect((address, port)) #connessione al server
+        print(f"{threading.current_thread().name} Connessione al server: {address}:{port}")
+    except:
+        print(f"{threading.current_thread().name} Qualcosa è andato storto, sto uscendo... \n{errore}")
         sys.exit()
-    invia_comandi(s) #invia i comandi 's'
+    comandi=['piu','meno','per','diviso']
+    operazione=comandi[random.randint(0,3)]
+    dati=str(operazione)+";"+str(random.randint(1,100))+";"+str(random.randint(1,100))
+    dati=dati.encode()
+    s.send(dati)
+    dati=s.recv(2084)
+    if not dati:
+        print(f"{threading.current_thread().name}: Server non risponde. Exit")
+    
+    dati=dati.decode()
+    print(f"{threading.current_thread().name} Ricevuto dal Server:")
+    print(dati + '\n')
+    dati = "ko"
+    dati = dati.encode()
+    s.send(dati)
+    s.close
+    end_time_thread= time.time()
+    print(f"{threading.current_thread().name} execution time =", end_time_thread - start_time_thread)
 
-if __name__=='__main__': #consente al nostro codice di capire se stia venendo eseguito come script a se stante, o se è stato richiamato come modulo da qualche programma per usare una o più delle sue varie funzioni e classi
-    avvia_server(SERVER_ADDRESS,SERVER_PORT)
+    if __name__ == '__main__':
+        #Run tasks using serial function
+        start_time= time.time()
+        for _ in range(0, NUM_WORKERS):
+            genera_richieste(SERVER_ADDRESS, SERVER_PORT)
+        end_time= time.time()
+        print("Total SERIAL time=", end_time-start_time)
+        
+        #run tasks using threads
+        start_time=time.time()
+        threads = [threading.Thread(target=genera_richieste, args=(SERVER_ADDRESS,SERVER_PORT,)) for _ in range(NUM_WORKERS)]
+        [thread.start() for thread in threads]
+        [thread.join() for thread in threads]
+        end_time=time.time()
+        print("Total THREADS time = ", end_time-start_time)
+
+        #run tasks using processes
+        start_time=time.time()
+        processes = [multiprocessing.Process(target=genera_richieste, args=(SERVER_ADDRESS,SERVER_PORT,)) for _ in range(NUM_WORKERS)]
+        [process.start() for process in processes]
+        [process.join() for process in processes]
+        end_time=time.time()
+        print("Total PROCESSES time = ", end_time-start_time)
