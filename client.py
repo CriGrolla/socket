@@ -4,49 +4,35 @@ import socket #importiamo il pacchetto socket
 SERVER_ADDRESS = '127.0.0.1' #indirizzo server
 SERVER_PORT = 22224 #porta server
 
-def ricevi_comandi(sock_listen): #la funzione riceve la socket connessa al server e la utilizza per accettare le richieste di connessione e per ognuna crea una socket per i dati (sock_service) da cui ricevere le richieste e inviare le risposte
-    while True: #se il server è in ascolto esegue i comandi
-        sock_service, addr_client = sock_listen.accept() #acetta la connessione con il client e rimane in ascolto per ricevere i dati
-        print("\nConnessione ricevuta da " + str(addr_client))
-        print("\nAspetto di ricevere i dati ")
-        contConn=0 #inizializza il contatore
-        while True: #se la connessione è attiva esegue i comandi
-            dati = sock_service.recv(2048) #aspetta la richiesta dal client
-            contConn+=1 #aumenta il contatore di 1
-            if not dati: #controlla che dai abbia un valore
-                print("Fine dati dal client. Reset")
-                break #se dati non ha valore chiude la connessione
-            
-            dati = dati.decode() #se dati ha valore lo decodifica
-            print("Ricevuto: '%s'" % dati) 
-            if dati=='0': 
-                print("Chiudo la connessione con " + str(addr_client))
-                break #se dati ha valore '0' chiude la connessione
-            
-            operazione, n1, n2 = dati.split(";") #.split divide la stringa al carattere indicato#Vari if per selezionare l'operazione che il client ha inserito
-            if operazione == "piu": #controllo operazione +
-                risultato = int(n1) + int(n2)
-            if operazione == "meno": #controllo operazione -
-                risultato = int(n1) - int(n2)
-            if operazione == "per": #controllo operazione *
-                risultato = int(n1) * int(n2)
-            if operazione == "diviso": #controllo operazione /
-                risultato = int(n1) / int(n2)
+def invia_comandi(socket_service): #la funzione riceve la socket connessa al server e la utilizza per richiedere il servizio
+    print("Connesso a " + str((SERVER_ADDRESS, SERVER_PORT))) #comando per verificare che il collegamento sia in funzione
+    while True:
+        try:
+            dati = input("Inserisci i dati da inviare (0 per terminare la connessione): ") #l'utente inserisce la richiesta da mandare al server
+        except EOFError: #se trova un errore sulla rete chiude la connessione
+            print("\nOkay. Exit")
+            break
+        if not dati: #controllo che la riga non sia vuota
+            print("Non puoi inviare una stringa vuota!") 
+            continue
+        if dati == '0': 
+            print("Chiudo la connessione con il server!") #quando l'utente unserisce '0' in input si interrompe la connessione
+            break
+        dati = dati.encode() #vengono codificati i dati
+        sock_service.send(dati) #vengono inviati i dati
+        dati = sock_service.recv(2048) #aspetta la risposta dal server
+        if not dati: #controllo risposta del server
+            print("Server non risponde. Exit")
+            break # se non risponde chiude il collegamento
+        dati = dati.decode() # se risponde vengono decodificati i dati
+        print("Ricevuto dal server:")
+        print(dati + '\n') # i dati ricevuti vengono stampati
+    sock_service.close() #se l'utente inserisce 0 o se il server non risponde, si chiude la connessione
 
-            dati = "Il risultato è: " + str(risultato) #output dell'operazione
-
-            dati = dati.encode() #codifica la risposta
-
-            sock_service.send(dati) #invia i dati codificati
-    sock_service.close() #fine ascolto del server
-
-def avvia_server(indirizzo,porta): #crea un endpoint di ascolto (sock_listen) dal quale accettare connessioni in entrata
-    sock_listen = socket.socket() #
-    sock_listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #
-    sock_listen.bind((indirizzo, porta)) #
-    sock_listen.listen(5) #
-    print("Server in ascolto su %s." % str((indirizzo, porta))) #il server è in ascolto e in grado di ricevere richieste di connessione
-    ricevi_comandi(sock_listen)
+def connessione_server(address,port): #crea una socket (s) per una connessione con il server e la passa alla funzione invia_comandi(s)
+    sock_service = socket.socket() #crea la richiesta del servizio
+    sock_service.connect((address, port)) #invia la richiesta del servizio e crea la richiesta
+    invia_comandi(socket_service)
 
 if __name__=='__main__': #consente al nostro codice di capire se stia venendo eseguito come script a se stante, o se è stato richiamato come modulo da qualche programma per usare una o più delle sue varie funzioni e classi
     avvia_server(SERVER_ADDRESS,SERVER_PORT)
